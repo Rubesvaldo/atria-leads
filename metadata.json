@@ -1,0 +1,6 @@
+{
+  "name": "Atria Leads",
+  "description": "Atria Leads - Sistema para upload de planilhas Excel com nome, telefone e e-mail para envio de mensagens via WhatsApp Business e E-mail.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
