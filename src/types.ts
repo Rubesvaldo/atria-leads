@@ -3,6 +3,7 @@ export type ContactStatus = 'pending' | 'sent' | 'skipped';
 export interface Contact {
   id: string;
   name: string;
+  company?: string;
   phone: string;
   cleanPhone: string;
   email: string;
@@ -14,6 +15,7 @@ export interface Contact {
 
 export interface ColumnMapping {
   nameColumn: string;
+  companyColumn?: string;
   phoneColumn: string;
   emailColumn: string;
 }
@@ -28,3 +30,15 @@ export interface MessageTemplate {
 }
 
 export type DispatchChannel = 'whatsapp' | 'email';
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string; // ISO date string
+  contactId: string;
+  contactName: string;
+  company?: string;
+  channel: DispatchChannel;
+  status: 'sent' | 'skipped';
+  destination: string; // phone or email
+  messagePreview?: string;
+}

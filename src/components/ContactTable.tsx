@@ -13,7 +13,8 @@ import {
   Check,
   AlertCircle,
   Copy,
-  Edit2
+  Edit2,
+  History
 } from 'lucide-react';
 import { Contact, ContactStatus } from '../types';
 import { formatPhoneDisplay, generateWhatsAppLink, generateMailtoLink, isValidEmail } from '../utils/phoneUtils';
@@ -31,6 +32,7 @@ interface ContactTableProps {
   onMarkSelectedStatus: (ids: string[], channel: 'whatsapp' | 'email', status: ContactStatus) => void;
   onOpenAddModal: () => void;
   onSelectSampleContact: (contact: Contact) => void;
+  onOpenActivityLog?: () => void;
 }
 
 export function ContactTable({
@@ -45,6 +47,7 @@ export function ContactTable({
   onMarkSelectedStatus,
   onOpenAddModal,
   onSelectSampleContact,
+  onOpenActivityLog,
 }: ContactTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'pending_wa' | 'pending_email' | 'sent'>('all');
@@ -161,8 +164,21 @@ export function ContactTable({
             )}
           </div>
 
-          {/* Add contact manual button */}
+          {/* Add contact manual and activity log button */}
           <div className="flex items-center space-x-2">
+            {onOpenActivityLog && (
+              <button
+                id="btn-table-activity-log"
+                type="button"
+                onClick={onOpenActivityLog}
+                className="inline-flex items-center px-3 py-2 text-xs font-semibold text-slate-200 bg-[#1E222B] hover:bg-[#262B37] border border-[#2E3342] rounded-xl shadow-xs transition-colors cursor-pointer"
+                title="Ver log de envios"
+              >
+                <History className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                Histórico
+              </button>
+            )}
+
             <button
               id="btn-add-contact-manual"
               type="button"
@@ -335,12 +351,19 @@ export function ContactTable({
                           {contact.name.charAt(0) || 'C'}
                         </div>
                         <div>
-                          <div
-                            onClick={() => onSelectSampleContact(contact)}
-                            className="font-semibold text-slate-100 hover:text-emerald-400 cursor-pointer transition-colors"
-                            title="Clique para ver a prévia das mensagens com este contato"
-                          >
-                            {contact.name}
+                          <div className="flex items-center space-x-2">
+                            <span
+                              onClick={() => onSelectSampleContact(contact)}
+                              className="font-semibold text-slate-100 hover:text-emerald-400 cursor-pointer transition-colors"
+                              title="Clique para ver a prévia das mensagens com este contato"
+                            >
+                              {contact.name}
+                            </span>
+                            {contact.company && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-[#1D222C] text-emerald-400 border border-emerald-500/20">
+                                {contact.company}
+                              </span>
+                            )}
                           </div>
                           {contact.notes && (
                             <span className="text-[10px] text-slate-500 block truncate max-w-[200px]">

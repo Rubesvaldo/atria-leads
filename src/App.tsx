@@ -13,11 +13,13 @@ import {
   Play, 
   UploadCloud, 
   HelpCircle,
-  FileCheck
+  FileCheck,
+  History,
+  ArrowRight
 } from 'lucide-react';
-import { Contact, ContactStatus } from './types';
+import { Contact, ContactStatus, ActivityLog } from './types';
 import { ParsedSheetData, generateDemoContacts } from './utils/excelUtils';
-import { DEFAULT_TEMPLATES } from './utils/templateUtils';
+import { DEFAULT_TEMPLATES, compileMessage } from './utils/templateUtils';
 import { Header } from './components/Header';
 import { FileUpload } from './components/FileUpload';
 import { ColumnMapperModal } from './components/ColumnMapperModal';
@@ -25,11 +27,13 @@ import { MessageComposer } from './components/MessageComposer';
 import { ContactTable } from './components/ContactTable';
 import { GuidedDispatcherModal } from './components/GuidedDispatcherModal';
 import { AddContactModal } from './components/AddContactModal';
+import { ActivityLogModal } from './components/ActivityLogModal';
 
 const STORAGE_CONTACTS_KEY = 'disparador_excel_contacts_list';
 const STORAGE_WA_KEY = 'disparador_excel_wa_template';
 const STORAGE_EMAIL_SUBJ_KEY = 'disparador_excel_email_subj';
 const STORAGE_EMAIL_BODY_KEY = 'disparador_excel_email_body';
+const STORAGE_LOGS_KEY = 'atria_leads_activity_logs_v1';
 
 export default function App() {
   // Contacts state with local storage fallback
@@ -75,7 +79,19 @@ export default function App() {
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [isGuidedModalOpen, setIsGuidedModalOpen] = useState<boolean>(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isActivityLogModalOpen, setIsActivityLogModalOpen] = useState<boolean>(false);
   const [selectedPreviewContact, setSelectedPreviewContact] = useState<Contact | undefined>(undefined);
+
+  // Activity logs state
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_LOGS_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
 
   // Sync to local storage
   useEffect(() => {
@@ -85,6 +101,14 @@ export default function App() {
       console.error(e);
     }
   }, [contacts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_LOGS_KEY, JSON.stringify(activityLogs));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [activityLogs]);
 
   useEffect(() => {
     try {
@@ -123,6 +147,34 @@ export default function App() {
     const demos = generateDemoContacts();
     setContacts(demos);
     setSelectedPreviewContact(demos[0]);
+
+    if (activityLogs.length === 0) {
+      const demoLogs: ActivityLog[] = [
+        {
+          id: `log_demo_1`,
+          timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+          contactId: demos[0].id,
+          contactName: demos[0].name,
+          company: demos[0].company,
+          channel: 'whatsapp',
+          status: 'sent',
+          destination: demos[0].cleanPhone,
+          messagePreview: 'Olá Carlos, tudo bem? Apresentamos a Atria Soluções...',
+        },
+        {
+          id: `log_demo_2`,
+          timestamp: new Date(Date.now() - 1000 * 60 * 7).toISOString(),
+          contactId: demos[1].id,
+          contactName: demos[1].name,
+          company: demos[1].company,
+          channel: 'email',
+          status: 'sent',
+          destination: demos[1].email,
+          messagePreview: 'Apresentação Comercial Exclusiva para Mariana',
+        },
+      ];
+      setActivityLogs(demoLogs);
+    }
   };
 
   const handleClearContacts = () => {
@@ -132,7 +184,32 @@ export default function App() {
     }
   };
 
+  const handleClearActivityLogs = () => {
+    setActivityLogs([]);
+    try {
+      localStorage.removeItem(STORAGE_LOGS_KEY);
+    } catch (e) {}
+  };
+
   const handleUpdateContactStatus = (id: string, channel: 'whatsapp' | 'email', status: ContactStatus) => {
+    const contact = contacts.find((c) => c.id === id);
+    if (contact && (status === 'sent' || status === 'skipped')) {
+      const newLog: ActivityLog = {
+        id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        timestamp: new Date().toISOString(),
+        contactId: id,
+        contactName: contact.name,
+        company: contact.company,
+        channel,
+        status,
+        destination: channel === 'whatsapp' ? contact.cleanPhone || contact.phone : contact.email,
+        messagePreview: channel === 'whatsapp'
+          ? compileMessage(whatsappText, contact).slice(0, 80)
+          : compileMessage(emailSubject, contact).slice(0, 80),
+      };
+      setActivityLogs((prev) => [newLog, ...prev.slice(0, 199)]);
+    }
+
     setContacts((prev) =>
       prev.map((c) => {
         if (c.id === id) {
@@ -159,6 +236,24 @@ export default function App() {
   };
 
   const handleMarkSelectedStatus = (ids: string[], channel: 'whatsapp' | 'email', status: ContactStatus) => {
+    if (status === 'sent' || status === 'skipped') {
+      const selectedContacts = contacts.filter((c) => ids.includes(c.id));
+      const newLogs: ActivityLog[] = selectedContacts.map((c) => ({
+        id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}_${c.id}`,
+        timestamp: new Date().toISOString(),
+        contactId: c.id,
+        contactName: c.name,
+        company: c.company,
+        channel,
+        status: status as 'sent' | 'skipped',
+        destination: channel === 'whatsapp' ? c.cleanPhone || c.phone : c.email,
+        messagePreview: channel === 'whatsapp'
+          ? compileMessage(whatsappText, c).slice(0, 80)
+          : compileMessage(emailSubject, c).slice(0, 80),
+      }));
+      setActivityLogs((prev) => [...newLogs, ...prev].slice(0, 200));
+    }
+
     setContacts((prev) =>
       prev.map((c) => {
         if (ids.includes(c.id)) {
@@ -191,10 +286,12 @@ export default function App() {
       {/* Header */}
       <Header
         contacts={contacts}
+        activityCount={activityLogs.length}
         onClearContacts={handleClearContacts}
         onLoadDemo={handleLoadDemo}
         onStartGuidedDispatch={() => setIsGuidedModalOpen(true)}
         onOpenAddModal={() => setIsAddModalOpen(true)}
+        onOpenActivityLog={() => setIsActivityLogModalOpen(true)}
       />
 
       {/* Main Container */}
@@ -316,6 +413,58 @@ export default function App() {
           </div>
         )}
 
+        {/* Quick Activity Banner / Last Actions Panel */}
+        {activityLogs.length > 0 && (
+          <div className="bg-[#161920] rounded-2xl border border-[#262A34] p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <History className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs font-bold text-slate-100">
+                    Última Ação de Envio
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    • {new Date(activityLogs[0].timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </span>
+                  <span
+                    className={`text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded-md ${
+                      activityLogs[0].channel === 'whatsapp'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    }`}
+                  >
+                    {activityLogs[0].channel === 'whatsapp' ? 'WhatsApp' : 'E-mail'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 truncate mt-0.5">
+                  <span className="font-semibold text-slate-200">{activityLogs[0].contactName}</span>
+                  {activityLogs[0].company && (
+                    <span className="text-slate-400"> ({activityLogs[0].company})</span>
+                  )}
+                  <span className="mx-1.5 text-slate-600">•</span>
+                  <span className="text-slate-300 font-mono text-[11px]">{activityLogs[0].destination}</span>
+                  <span className="mx-1.5 text-slate-600">•</span>
+                  <span className={activityLogs[0].status === 'sent' ? 'text-emerald-400 font-medium' : 'text-amber-400'}>
+                    {activityLogs[0].status === 'sent' ? 'Enviado com sucesso' : 'Ignorado'}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <button
+              id="btn-view-all-activities"
+              type="button"
+              onClick={() => setIsActivityLogModalOpen(true)}
+              className="inline-flex items-center justify-center px-3.5 py-2 text-xs font-semibold text-slate-200 bg-[#1E222B] hover:bg-[#262B37] border border-[#2E3342] hover:border-emerald-500/40 rounded-xl transition-colors cursor-pointer flex-shrink-0"
+            >
+              <span>Ver Log de Atividades ({activityLogs.length})</span>
+              <ArrowRight className="w-3.5 h-3.5 ml-1.5 text-emerald-400" />
+            </button>
+          </div>
+        )}
+
         {/* Message Composer */}
         <MessageComposer
           whatsappText={whatsappText}
@@ -343,6 +492,7 @@ export default function App() {
             onMarkSelectedStatus={handleMarkSelectedStatus}
             onOpenAddModal={() => setIsAddModalOpen(true)}
             onSelectSampleContact={(contact) => setSelectedPreviewContact(contact)}
+            onOpenActivityLog={() => setIsActivityLogModalOpen(true)}
           />
         )}
 
@@ -389,6 +539,15 @@ export default function App() {
         <AddContactModal
           onAddContact={handleAddContact}
           onClose={() => setIsAddModalOpen(false)}
+        />
+      )}
+
+      {/* Activity Log Modal */}
+      {isActivityLogModalOpen && (
+        <ActivityLogModal
+          logs={activityLogs}
+          onClearLogs={handleClearActivityLogs}
+          onClose={() => setIsActivityLogModalOpen(false)}
         />
       )}
 

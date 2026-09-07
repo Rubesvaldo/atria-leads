@@ -7,6 +7,7 @@ export interface ParsedSheetData {
   rawRows: Record<string, any>[];
   detectedMapping: {
     nameColumn: string;
+    companyColumn?: string;
     phoneColumn: string;
     emailColumn: string;
   };
@@ -28,14 +29,17 @@ function normalizeHeader(str: string): string {
  */
 export function autoDetectColumns(headers: string[]): {
   nameColumn: string;
+  companyColumn?: string;
   phoneColumn: string;
   emailColumn: string;
 } {
   let nameColumn = '';
+  let companyColumn = '';
   let phoneColumn = '';
   let emailColumn = '';
 
-  const nameKeywords = ['nome', 'name', 'cliente', 'contato', 'razao', 'pessoa', 'lead'];
+  const nameKeywords = ['nome', 'name', 'cliente', 'contato', 'pessoa', 'lead'];
+  const companyKeywords = ['empresa', 'company', 'organizacao', 'razao', 'corporacao', 'negocio', 'fantasia'];
   const phoneKeywords = ['telefone', 'whatsapp', 'celular', 'numero', 'phone', 'fone', 'tel', 'zap', 'mobile', 'wpp'];
   const emailKeywords = ['email', 'mail', 'correio', 'eletronico'];
 
@@ -44,6 +48,9 @@ export function autoDetectColumns(headers: string[]): {
 
     if (!nameColumn && nameKeywords.some((k) => norm.includes(k))) {
       nameColumn = header;
+    }
+    if (!companyColumn && companyKeywords.some((k) => norm.includes(k))) {
+      companyColumn = header;
     }
     if (!phoneColumn && phoneKeywords.some((k) => norm.includes(k))) {
       phoneColumn = header;
@@ -58,7 +65,7 @@ export function autoDetectColumns(headers: string[]): {
   if (!phoneColumn && headers.length > 1) phoneColumn = headers[1];
   if (!emailColumn && headers.length > 2) emailColumn = headers[2];
 
-  return { nameColumn, phoneColumn, emailColumn };
+  return { nameColumn, companyColumn: companyColumn || undefined, phoneColumn, emailColumn };
 }
 
 /**
@@ -101,11 +108,12 @@ export async function parseExcelFile(file: File): Promise<ParsedSheetData> {
  */
 export function convertRowsToContacts(
   rawRows: Record<string, any>[],
-  mapping: { nameColumn: string; phoneColumn: string; emailColumn: string }
+  mapping: { nameColumn: string; companyColumn?: string; phoneColumn: string; emailColumn: string }
 ): Contact[] {
   return rawRows
     .map((row, index) => {
       const name = String(row[mapping.nameColumn] || '').trim();
+      const company = mapping.companyColumn ? String(row[mapping.companyColumn] || '').trim() : '';
       const rawPhone = String(row[mapping.phoneColumn] || '').trim();
       const email = String(row[mapping.emailColumn] || '').trim();
       const cleanPhone = sanitizePhoneNumber(rawPhone);
@@ -118,6 +126,7 @@ export function convertRowsToContacts(
       const contact: Contact = {
         id: `contact_${Date.now()}_${index}_${Math.random().toString(36).slice(2, 7)}`,
         name: name || `Contato ${index + 1}`,
+        company: company || undefined,
         phone: rawPhone,
         cleanPhone,
         email,
@@ -137,30 +146,35 @@ export function downloadSampleExcel() {
   const sampleData = [
     {
       Nome: 'Carlos Eduardo Klein',
+      Empresa: 'Atria Soluções',
       Telefone: '51999887766',
       Email: 'carlos.klein@exemplo.com.br',
       Observacao: 'Interessado em soluções digitais',
     },
     {
       Nome: 'Mariana Silva Souza',
+      Empresa: 'Tech Ventures',
       Telefone: '11988776655',
       Email: 'mariana.silva@exemplo.com',
       Observacao: 'Cliente VIP - Enviar proposta',
     },
     {
       Nome: 'Roberto Mendes',
+      Empresa: 'Mendes Engenharia',
       Telefone: '21977665544',
       Email: 'roberto.mendes@empresa.com.br',
       Observacao: 'Aguardando retorno sobre orçamento',
     },
     {
       Nome: 'Ana Paula Ferreira',
+      Empresa: 'Consultoria Prime',
       Telefone: '31966554433',
       Email: 'anapaula@consultoria.com.br',
       Observacao: 'Pediu contato pelo WhatsApp Business',
     },
     {
       Nome: 'Lucas Oliveira',
+      Empresa: 'Oliveira & Filhos',
       Telefone: '41955443322',
       Email: 'lucas.oliveira@tech.com',
       Observacao: 'Contato via formulário',
@@ -172,6 +186,7 @@ export function downloadSampleExcel() {
   // Set column widths
   worksheet['!cols'] = [
     { wch: 25 }, // Nome
+    { wch: 22 }, // Empresa
     { wch: 18 }, // Telefone
     { wch: 30 }, // Email
     { wch: 35 }, // Observacao
@@ -189,6 +204,7 @@ export function downloadSampleExcel() {
 export function exportContactsToExcel(contacts: Contact[]) {
   const exportData = contacts.map((c) => ({
     Nome: c.name,
+    Empresa: c.company || '',
     Telefone: c.phone,
     WhatsApp_Formatado: c.cleanPhone,
     Email: c.email,
@@ -201,6 +217,7 @@ export function exportContactsToExcel(contacts: Contact[]) {
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   worksheet['!cols'] = [
     { wch: 25 },
+    { wch: 22 },
     { wch: 18 },
     { wch: 20 },
     { wch: 30 },
@@ -224,6 +241,7 @@ export function generateDemoContacts(): Contact[] {
     {
       id: 'demo_1',
       name: 'Carlos Eduardo',
+      company: 'Atria Soluções',
       phone: '(51) 99988-7766',
       cleanPhone: '5551999887766',
       email: 'carlos.eduardo@exemplo.com.br',
@@ -234,6 +252,7 @@ export function generateDemoContacts(): Contact[] {
     {
       id: 'demo_2',
       name: 'Mariana Souza',
+      company: 'Tech Ventures',
       phone: '11988776655',
       cleanPhone: '5511988776655',
       email: 'mariana.souza@empresa.com.br',
@@ -244,6 +263,7 @@ export function generateDemoContacts(): Contact[] {
     {
       id: 'demo_3',
       name: 'Roberto Mendes',
+      company: 'Mendes Engenharia',
       phone: '+55 21 97766-5544',
       cleanPhone: '5521977665544',
       email: 'roberto.mendes@negocios.com.br',
@@ -255,6 +275,7 @@ export function generateDemoContacts(): Contact[] {
     {
       id: 'demo_4',
       name: 'Ana Paula Ribeiro',
+      company: 'Consultoria Prime',
       phone: '31 96655-4433',
       cleanPhone: '5531966554433',
       email: 'anapaula@consultoria.com.br',
@@ -266,6 +287,7 @@ export function generateDemoContacts(): Contact[] {
     {
       id: 'demo_5',
       name: 'Juliana Castro',
+      company: 'Startup Alpha',
       phone: '41991234567',
       cleanPhone: '5541991234567',
       email: 'juliana.castro@startup.com',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Phone, Mail, User, FileText } from 'lucide-react';
+import { X, UserPlus, Phone, Mail, User, FileText, Building2 } from 'lucide-react';
 import { Contact } from '../types';
 import { sanitizePhoneNumber } from '../utils/phoneUtils';
 
@@ -10,6 +10,7 @@ interface AddContactModalProps {
 
 export function AddContactModal({ onAddContact, onClose }: AddContactModalProps) {
   const [name, setName] = useState('');
+  const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
@@ -33,6 +34,7 @@ export function AddContactModal({ onAddContact, onClose }: AddContactModalProps)
     const newContact: Contact = {
       id: `contact_manual_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name: name.trim(),
+      company: company.trim() || undefined,
       phone: phone.trim(),
       cleanPhone,
       email: email.trim(),
@@ -97,6 +99,26 @@ export function AddContactModal({ onAddContact, onClose }: AddContactModalProps)
                 className="w-full pl-9 pr-3 py-2 bg-[#101217] border border-[#2A2E3B] rounded-xl text-slate-200 placeholder-slate-500 focus:bg-[#0D0F14] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block font-semibold text-slate-300">
+              Empresa / Organização (Opcional)
+            </label>
+            <div className="relative">
+              <Building2 className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                id="input-new-company"
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Ex: Atria Soluções ou ACME Ltda"
+                className="w-full pl-9 pr-3 py-2 bg-[#101217] border border-[#2A2E3B] rounded-xl text-slate-200 placeholder-slate-500 focus:bg-[#0D0F14] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Disponível na mensagem através da variável {"{{empresa}}"}.
+            </p>
           </div>
 
           <div className="space-y-1.5">

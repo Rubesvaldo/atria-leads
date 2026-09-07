@@ -7,25 +7,30 @@ import {
   Send, 
   MessageSquare, 
   Mail,
-  Play
+  Play,
+  History
 } from 'lucide-react';
 import { Contact } from '../types';
 import { downloadSampleExcel, exportContactsToExcel } from '../utils/excelUtils';
 
 interface HeaderProps {
   contacts: Contact[];
+  activityCount: number;
   onClearContacts: () => void;
   onLoadDemo: () => void;
   onStartGuidedDispatch: () => void;
   onOpenAddModal: () => void;
+  onOpenActivityLog: () => void;
 }
 
 export function Header({
   contacts,
+  activityCount,
   onClearContacts,
   onLoadDemo,
   onStartGuidedDispatch,
   onOpenAddModal,
+  onOpenActivityLog,
 }: HeaderProps) {
   const total = contacts.length;
   const whatsappSent = contacts.filter((c) => c.whatsappStatus === 'sent').length;
@@ -96,6 +101,21 @@ export function Header({
                 </button>
 
                 <button
+                  id="btn-open-activity-log"
+                  onClick={onOpenActivityLog}
+                  className="inline-flex items-center px-3 py-2 text-xs font-semibold text-slate-200 bg-[#1E222B] hover:bg-[#262B37] border border-[#2E3342] hover:border-emerald-500/40 rounded-xl shadow-xs transition-colors cursor-pointer"
+                  title="Ver histórico e log de atividades"
+                >
+                  <History className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                  <span>Log de Atividades</span>
+                  {activityCount > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                      {activityCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
                   id="btn-clear-contacts"
                   onClick={onClearContacts}
                   className="inline-flex items-center p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
@@ -108,6 +128,21 @@ export function Header({
 
             {total === 0 && (
               <>
+                <button
+                  id="btn-open-activity-log-empty"
+                  onClick={onOpenActivityLog}
+                  className="inline-flex items-center px-3 py-2 text-xs font-semibold text-slate-300 bg-[#1E222B] hover:bg-[#262B37] border border-[#2E3342] rounded-xl shadow-xs transition-colors cursor-pointer"
+                  title="Ver histórico e log de atividades"
+                >
+                  <History className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                  <span>Log de Atividades</span>
+                  {activityCount > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                      {activityCount}
+                    </span>
+                  )}
+                </button>
+
                 <button
                   id="btn-download-sample"
                   onClick={downloadSampleExcel}

@@ -19,6 +19,7 @@ export function ColumnMapperModal({
 }: ColumnMapperModalProps) {
   const [mapping, setMapping] = useState<ColumnMapping>({
     nameColumn: parsedData.detectedMapping.nameColumn || parsedData.headers[0] || '',
+    companyColumn: parsedData.detectedMapping.companyColumn || '',
     phoneColumn: parsedData.detectedMapping.phoneColumn || parsedData.headers[1] || '',
     emailColumn: parsedData.detectedMapping.emailColumn || parsedData.headers[2] || '',
   });
@@ -63,7 +64,7 @@ export function ColumnMapperModal({
             Identificamos automaticamente as colunas da sua planilha. Caso alguma coluna esteja diferente, selecione a coluna correspondente abaixo:
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Nome */}
             <div className="p-4 rounded-xl border border-[#262A34] bg-[#1A1D25] space-y-2">
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
@@ -84,10 +85,33 @@ export function ColumnMapperModal({
               <p className="text-[11px] text-slate-500">Ex: Nome do cliente ou contato</p>
             </div>
 
+            {/* Empresa */}
+            <div className="p-4 rounded-xl border border-[#262A34] bg-[#1A1D25] space-y-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                2. Coluna da Empresa (Opcional)
+              </label>
+              <select
+                id="select-col-company"
+                value={mapping.companyColumn || ''}
+                onChange={(e) => setMapping({ ...mapping, companyColumn: e.target.value || undefined })}
+                className="w-full text-xs sm:text-sm bg-[#101217] border border-[#2A2E3B] rounded-lg px-2.5 py-2 text-slate-200 font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
+              >
+                <option value="" className="bg-[#161920] text-slate-400">
+                  (Não mapear empresa)
+                </option>
+                {parsedData.headers.map((h) => (
+                  <option key={h} value={h} className="bg-[#161920] text-slate-200">
+                    {h}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-500">Usada para a variável {"{{empresa}}"}</p>
+            </div>
+
             {/* Telefone */}
             <div className="p-4 rounded-xl border border-[#262A34] bg-[#1A1D25] space-y-2">
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                2. Coluna WhatsApp / Celular <span className="text-rose-400">*</span>
+                3. Coluna WhatsApp / Celular <span className="text-rose-400">*</span>
               </label>
               <select
                 id="select-col-phone"
@@ -107,7 +131,7 @@ export function ColumnMapperModal({
             {/* Email */}
             <div className="p-4 rounded-xl border border-[#262A34] bg-[#1A1D25] space-y-2">
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                3. Coluna de E-mail
+                4. Coluna de E-mail
               </label>
               <select
                 id="select-col-email"
@@ -115,6 +139,9 @@ export function ColumnMapperModal({
                 onChange={(e) => setMapping({ ...mapping, emailColumn: e.target.value })}
                 className="w-full text-xs sm:text-sm bg-[#101217] border border-[#2A2E3B] rounded-lg px-2.5 py-2 text-slate-200 font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 cursor-pointer"
               >
+                <option value="" className="bg-[#161920] text-slate-400">
+                  (Não mapear e-mail)
+                </option>
                 {parsedData.headers.map((h) => (
                   <option key={h} value={h} className="bg-[#161920] text-slate-200">
                     {h}
@@ -136,8 +163,9 @@ export function ColumnMapperModal({
                 <thead className="bg-[#121419] text-slate-400 font-medium border-b border-[#262A34]">
                   <tr>
                     <th className="px-3 py-2">Nome ({mapping.nameColumn})</th>
+                    {mapping.companyColumn && <th className="px-3 py-2">Empresa ({mapping.companyColumn})</th>}
                     <th className="px-3 py-2">Telefone ({mapping.phoneColumn})</th>
-                    <th className="px-3 py-2">E-mail ({mapping.emailColumn})</th>
+                    <th className="px-3 py-2">E-mail ({mapping.emailColumn || 'nenhum'})</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#222632]">
@@ -146,6 +174,11 @@ export function ColumnMapperModal({
                       <td className="px-3 py-2 font-medium text-slate-200">
                         {String(row[mapping.nameColumn] || '-')}
                       </td>
+                      {mapping.companyColumn && (
+                        <td className="px-3 py-2 text-slate-300">
+                          {String(row[mapping.companyColumn] || '-')}
+                        </td>
+                      )}
                       <td className="px-3 py-2 text-slate-300">
                         {String(row[mapping.phoneColumn] || '-')}
                       </td>
